@@ -1,0 +1,75 @@
+﻿@page "/"
+@using Reddit2Kindle.Blazor.Services
+@using Reddit2Kindle.Contracts
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Client
+
+<MudContainer Class="mudblazor-index">
+    <MudGrid>
+        <MudItem xs="12" sm="12" md="12">
+            <EditForm Model="@_model" OnValidSubmit="OnValidSubmit">
+                <DataAnnotationsValidator/>
+                <MudCard>
+                    <MudCardContent>
+                        <MudTextField Label="Submission URL"
+                                      @bind-Value="_model.Post" For="@(() => _model.Post)"/>
+                        <MudItem Class="d-inline-flex">
+                            <MudTextField Label="Kindle Email" Class="flex-grow-1"
+                                          @bind-Value="_model.Email" For="@(() => _model.Email)"/>
+                            <MudSelect T="string" @bind-Value="_model.Domain">
+                                <MudSelectItem Value="@("@kindle.com")"/>
+                                <MudSelectItem Value="@("@free.kindle.com")"/>
+                            </MudSelect>
+                        </MudItem>
+                    </MudCardContent>
+                    <MudCardActions>
+                        @if (IsLoading)
+                        {
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto" Disabled="true">
+                                <MudProgressCircular Size="Size.Small" Color="Color.Primary" Indeterminate="true"/>
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Submit</MudButton>
+                        }
+                    </MudCardActions>
+                </MudCard>
+            </EditForm>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code
+{
+    readonly SubmitPostForm _model = new();
+
+    public bool IsLoading;
+
+    [Inject]
+    public Reddit2KindleService Service { get; set; }
+
+    public class SubmitPostForm
+    {
+        [Required]
+        public string Post { get; set; }
+
+        [Required]
+        public string Email { get; set; }
+
+        [Required]
+        public string Domain { get; set; } = "@kindle.com";
+    }
+
+    private async Task OnValidSubmit(EditContext editContext)
+    {
+        IsLoading = true;
+        var postRequest = new PostRequest
+        {
+            Email = _model.Email + _model.Domain,
+            Post = new Uri(_model.Post)
+        };
+        await Service.SubmitPost(postRequest);
+        IsLoading = false;
+    }
+}
